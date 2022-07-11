@@ -116,3 +116,174 @@ from statsmodels.graphics.tsaplots import plot_acf,plot_pacf
 fig_first = plot_acf(df['NTF'].dropna())
 fig_second = plot_pacf(df['NTF'].dropna())
 plt.show()
+
+
+#Lanjutan
+#first Differencing
+#autocorrelation and Partial Autocorrelaction plot
+
+from statsmodels.graphics.tsaplots import plot_acf,plot_pacf
+fig_first = plot_acf(df['NTF Diff 1'].dropna())
+fig_second = plot_pacf(df['NTF Diff 1'].dropna())
+plt.show()
+
+#fit dan summary
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+mod = SARIMAX(df['NTF Diff 1'], order=(1, 0,1))
+res = mod.fit()
+print(res.summary())
+
+#Exog
+modexog = SARIMAX(df['NTF Diff 1'], order=(1, 0,1),exog=df['Acct'])
+resexog = modexog.fit()
+print(resexog.summary())
+
+#coba forecast data terakhir
+#one step forecast
+one_step_forecast=res.get_prediction(start=-10)
+mean_forecast = one_step_forecast.predicted_mean
+confidence_intervals = one_step_forecast.conf_int()
+lower_limits = confidence_intervals.loc[:,'lower NTF Diff 1']
+upper_limits = confidence_intervals.loc[:,'upper NTF Diff 1']
+print(mean_forecast)
+
+#plot forecast
+plt.plot(df['NTF Diff 1'].index,df['NTF Diff 1'],label='observed')
+plt.plot(mean_forecast.index,mean_forecast,color='r',label='forecast')
+plt.fill_between(mean_forecast.index,lower_limits,upper_limits,color='pink')
+plt.xlabel('Date')
+plt.ylabel('NTF diff 1')
+plt.legend()
+plt.show()
+
+
+#dynamic forecast
+dynamic_forecast = res.get_prediction(start=-10, dynamic=True)
+mean_forecast = dynamic_forecast.predicted_mean
+confidence_intervals = dynamic_forecast.conf_int()
+lower_limits = confidence_intervals.loc[:,'lower NTF Diff 1']
+upper_limits = confidence_intervals.loc[:,'upper NTF Diff 1']
+print(mean_forecast)
+
+#plot forecast
+plt.plot(df['NTF Diff 1'].index,df['NTF Diff 1'],label='observed')
+plt.plot(mean_forecast.index,mean_forecast,color='r',label='forecast')
+plt.fill_between(mean_forecast.index,lower_limits,upper_limits,color='pink')
+plt.xlabel('Date')
+plt.ylabel('NTF diff 1')
+plt.legend()
+plt.show()
+
+#forecast kedepan (pasti dynamic)
+dynamic_forecast_forward=res.get_forecast(steps=10).predicted_mean
+plt.plot(df['NTF Diff 1'].index,df['NTF Diff 1'],label='observed')
+plt.plot(dynamic_forecast_forward.index,dynamic_forecast_forward,color='r',label='forecast')
+plt.xlabel('Date')
+plt.ylabel('NTF diff 1')
+plt.legend()
+plt.show()
+
+#forecast kedepan data asli
+asli_int_forecast = np.cumsum(dynamic_forecast_forward)
+asli_value_forecast = asli_int_forecast + df['NTF'].iloc[-1]
+plt.plot(df['NTF'].index,df['NTF'],label='observed')
+plt.plot(asli_value_forecast.index,asli_value_forecast,color='r',label='forecast')
+plt.xlabel('Date')
+plt.ylabel('NTF')
+plt.legend()
+plt.show()
+
+#ARIMA, langsung forecast differencing nya
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+mod = SARIMAX(df['NTF'], order=(1, 1, 1))
+res = mod.fit()
+print(res.summary())
+
+
+#SEASONAL
+#autocorrelation and Partial Autocorrelaction plot
+
+from statsmodels.graphics.tsaplots import plot_acf,plot_pacf
+fig_first = plot_acf(df['NTF Diff seasonal'].dropna())
+fig_second = plot_pacf(df['NTF Diff seasonal'].dropna())
+plt.show()
+
+#fit dan summary
+from statsmodels.tsa.arima.model import ARIMA
+mod = ARIMA(df['NTF Diff seasonal'], order=(1, 0,2))
+res = mod.fit()
+print(res.summary())
+
+#Exog
+modexog = ARIMA(df['NTF Diff seasonal'], order=(1, 0,2),exog=df['Acct'])
+resexog = modexog.fit()
+print(resexog.summary())
+
+#coba forecast data terakhir
+#one step forecast
+one_step_forecast=res.get_prediction(start=-10)
+mean_forecast = one_step_forecast.predicted_mean
+confidence_intervals = one_step_forecast.conf_int()
+lower_limits = confidence_intervals.loc[:,'lower NTF Diff seasonal']
+upper_limits = confidence_intervals.loc[:,'upper NTF Diff seasonal']
+print(mean_forecast)
+
+#plot forecast
+plt.plot(df['NTF Diff seasonal'].index,df['NTF Diff seasonal'],label='observed')
+plt.plot(mean_forecast.index,mean_forecast,color='r',label='forecast')
+plt.fill_between(mean_forecast.index,lower_limits,upper_limits,color='pink')
+plt.xlabel('Date')
+plt.ylabel('NTF diff seasonal')
+plt.legend()
+plt.show()
+
+
+#dynamic forecast
+dynamic_forecast = res.get_prediction(start=-10, dynamic=True)
+mean_forecast = dynamic_forecast.predicted_mean
+confidence_intervals = dynamic_forecast.conf_int()
+lower_limits = confidence_intervals.loc[:,'lower NTF Diff seasonal']
+upper_limits = confidence_intervals.loc[:,'upper NTF Diff seasonal']
+print(mean_forecast)
+
+#plot forecast
+plt.plot(df['NTF Diff seasonal'].index,df['NTF Diff seasonal'],label='observed')
+plt.plot(mean_forecast.index,mean_forecast,color='r',label='forecast')
+plt.fill_between(mean_forecast.index,lower_limits,upper_limits,color='pink')
+plt.xlabel('Date')
+plt.ylabel('NTF diff seasonal')
+plt.legend()
+plt.show()
+
+#forecast kedepan (pasti dynamic)
+dynamic_forecast_forward=res.get_forecast(steps=10).predicted_mean
+plt.plot(df['NTF Diff seasonal'].index,df['NTF Diff seasonal'],label='observed')
+plt.plot(dynamic_forecast_forward.index,dynamic_forecast_forward,color='r',label='forecast')
+plt.xlabel('Date')
+plt.ylabel('NTF diff seasonal')
+plt.legend()
+plt.show()
+
+
+#forecast kedepan data asli
+asli_int_forecast = np.cumsum(dynamic_forecast_forward)
+asli_value_forecast = asli_int_forecast + df['NTF'].iloc[-1]
+plt.plot(df['NTF'].index,df['NTF'],label='observed')
+plt.plot(asli_value_forecast.index,asli_value_forecast,color='r',label='forecast')
+plt.xlabel('Date')
+plt.ylabel('NTF')
+plt.legend()
+plt.show()
+
+#ARIMA, langsung forecast differencing nya
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+mod = SARIMAX(df['NTF Diff seasonal'], order=(1, 0,2))
+res = mod.fit()
+print(res.summary())
+
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+mod = SARIMAX(df['NTF'], order=(1, 12, 2))
+res = mod.fit()
+print(res.summary())
+
+#, order=(1, 0, 2), seasonal_order=(1,1,0,12)
