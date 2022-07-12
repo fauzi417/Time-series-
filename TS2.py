@@ -287,3 +287,55 @@ res = mod.fit()
 print(res.summary())
 
 #, order=(1, 0, 2), seasonal_order=(1,1,0,12)
+
+#Lanjut2
+#list kosong
+order_aic_bic = []
+
+#loop ar
+for p in range(3):
+    # Loop ma
+    for q in range(3):
+        try:
+            model = SARIMAX(df['NTF'], order=(p, 0, q))
+            results = model.fit()
+
+            # masukin aic bic ke list
+            order_aic_bic.append((p, q, results.aic, results.bic))
+        except:
+            order_aic_bic.append((p, q, None, None))
+
+#nama tabel
+order_df = pd.DataFrame(order_aic_bic,
+                        columns=['p', 'q', 'AIC', 'BIC'])
+
+#print sort aic dan bic
+print(order_df.sort_values('AIC'))
+print(order_df.sort_values('BIC'))
+
+#Metrics (selalu liat residual)
+#model diagnostics
+model = SARIMAX(df['NTF'], order=(1, 0, 1))
+results = model.fit()
+mae = np.mean(np.abs(results.resid))
+print(mae)
+print(results.summary())
+#Prob Q residual tidak korelasi, Prob JB tapi residual tidak menyebar normal
+
+results.plot_diagnostics()
+plt.show()
+#1. tidak ada pattern dan atas bawah lebarnya sama , OKE
+#2. Histogram normal tapi kurang mendekati normal 0,1 , Tidak OKE
+#3. QQ Plot gak lurus sama garis, Tidak OKE
+#4. Correlogram tidak ada yg keluar, OKE
+
+
+#Langkah Box Jenkins
+#1. Indentification: plot data asli, grangar causality, cari lag potensial, dickey fuller, cari T paling kecil dan Pvalue <0.05
+# lanjut cari ACF dan PACF potensial Order ARMA
+#2.Estimation: Trial and Error ARMA fit dan cari bic aic terkecil
+#3. Model Diagnostic: plot diagnostic, summary liat prob Q dan JB
+#4. Decision: Model diagnostic masih ada yg belum oke ? ulang ke identification cari transformasi lain
+# kalo udah oke semua lanjut 5
+#5. Forecast
+
