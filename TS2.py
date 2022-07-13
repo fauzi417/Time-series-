@@ -339,3 +339,108 @@ plt.show()
 # kalo udah oke semua lanjut 5
 #5. Forecast
 
+
+#SEASONAL ARIMA
+df=pd.read_excel('C:/Users/PREDATOR/OneDrive/Dokumen/ts/NTF series (1).xlsx')
+df['Date']= pd.to_datetime(df['Date'])
+df2=df.groupby([df['Date'].dt.year, df['Date'].dt.month], as_index=False).last()
+df.set_index('Date', inplace=True)
+df2.set_index('Date', inplace=True)
+s2 = df.groupby([lambda x: x.year, lambda x: x.month]).sum()
+s2.set_index(df2['NTF'].asfreq('1M').index,inplace=True)
+
+# analyze the data, give rough picture of the data
+print(s2['NTF'].describe())
+s2['NTF'].plot()
+plt.show()
+
+#decomp
+
+decomp = seasonal_decompose(s2['NTF'].asfreq('1M'))
+decomp.plot()
+plt.show()
+
+#adf
+adf_check(s2['NTF'])
+
+#differencing
+#first difference
+s2['NTF Diff 1']=s2['NTF']-s2['NTF'].shift(1)
+adf_check(s2['NTF Diff 1'].dropna())
+s2['NTF Diff 1'].plot()
+plt.show()
+
+#acf pacf diff 1
+plot_acf(s2['NTF Diff 1'].dropna(),lags=20)
+plot_pacf(s2['NTF Diff 1'].dropna(),lags=20)
+
+#detrending
+s2['NTF'].plot()
+s2['NTF'].rolling(12).mean().plot()
+dfdetrend=s2['NTF']-s2['NTF'].rolling(12).mean()
+dfdetrend.plot()
+
+#acf pacf detrending
+plot_acf(dfdetrend.dropna(),lags=20)
+plot_pacf(dfdetrend.dropna(),lags=20)
+
+#seasonal difference
+s2['NTF Diff 1 dan 12']=s2['NTF Diff 1']-s2['NTF Diff 1'].shift(12)
+adf_check(s2['NTF Diff 1 dan 12'].dropna())
+s2['NTF Diff 1 dan 12'].plot()
+plt.show()
+
+#buat model ARIMA dan SARIMA
+#acf pacf diff 1 order ARMA
+plot_acf(s2['NTF Diff 1'].dropna(),lags=11)
+plot_pacf(s2['NTF Diff 1'].dropna(),lags=11)
+
+#acf pacf diff 1 order seasonal
+lags=[6,12,18,24]
+plot_acf(s2['NTF Diff 1'].dropna(),lags=lags)
+plot_pacf(s2['NTF Diff 1'].dropna(),lags=lags)
+
+#acf pacf diff 1 + diff 12 order
+plot_acf(s2['NTF Diff 1 dan 12'].dropna(),lags=11)
+plot_pacf(s2['NTF Diff 1 dan 12'].dropna(),lags=11)
+
+#acf pacf diff 1 order seasonal
+lags=[12,24]
+plot_acf(s2['NTF Diff 1 dan 12'].dropna(),lags=lags)
+plot_pacf(s2['NTF Diff 1 dan 12'].dropna(),lags=lags)
+
+#model
+model1 = SARIMAX(s2['NTF'], order=(2, 1, 1), seasonal_order=(2,0,2,6))
+results1 = model1.fit()
+print(results1.summary())
+
+model2 = SARIMAX(s2['NTF'], order=(0, 1, 0), seasonal_order=(2,1,0,12))
+results2 = model2.fit()
+print(results2.summary())
+
+#model ARIMA aja
+model3 = SARIMAX(s2['NTF'], order=(2, 1, 1))
+results3 = model3.fit()
+print(results3.summary())
+
+
+# Create SARIMA mean forecast
+sarima_pred1 = results1.get_prediction(start=-10,dynamic=True)
+sarima_mean1 = sarima_pred1.predicted_mean
+
+
+# Create SARIMA mean forecast
+sarima_pred2 = results2.get_prediction(start=-10,dynamic=True)
+sarima_mean2 = sarima_pred2.predicted_mean
+
+# Create ARIMA mean forecast
+arima_pred = results3.get_prediction(start=-10,dynamic=True)
+arima_mean = arima_pred.predicted_mean
+
+# Plot mean ARIMA and SARIMA predictions and observed
+plt.plot(s2['NTF'], label='observed')
+plt.plot(sarima_mean1.index, sarima_mean1, label='SARIMA 1')
+plt.plot(sarima_mean2.index, sarima_mean2, label='SARIMA 2')
+plt.plot(arima_mean.index, arima_mean, label='ARIMA')
+plt.legend()
+plt.show()
