@@ -18,7 +18,8 @@ model = pm.auto_arima(train,
                       error_action='warn',
                       suppress_warnings=True,
                       stepwise = True,
-                      n_job=-1)
+                      n_job=-1,
+                      scoring='mae')
 
 print(model.summary())
 
