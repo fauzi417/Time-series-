@@ -318,7 +318,11 @@ print(order_df.sort_values('BIC'))
 model = SARIMAX(df['NTF'], order=(1, 0, 1))
 results = model.fit()
 mae = np.mean(np.abs(results.resid))
-print(mae)
+me = np.mean(results.resid)             # ME
+mae = np.mean(np.abs(results.resid))    # MAE
+mse = np.mean((results.resid)**2)       # MSE
+rmse = np.mean((results.resid)**2)**.5  # RMSE
+print(mae,me,mae,mse,rmse)
 print(results.summary())
 #Prob Q residual tidak korelasi, Prob JB tapi residual tidak menyebar normal
 
