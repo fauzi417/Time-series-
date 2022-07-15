@@ -448,3 +448,33 @@ plt.plot(sarima_mean2.index, sarima_mean2, label='SARIMA 2')
 plt.plot(arima_mean.index, arima_mean, label='ARIMA')
 plt.legend()
 plt.show()
+
+
+#GARCH
+#GARCH
+from arch import arch_model
+import matplotlib.pyplot as plt
+
+#model
+model1 = SARIMAX(s2['NTF'], order=(2, 1, 1), seasonal_order=(2,0,2,6))
+results1 = model1.fit()
+print(results1.summary())
+
+# Specify GARCH model assumptions
+basic_gm = arch_model(results1.resid, p = 2, q = 1,
+                      mean = 'constant', vol = 'GARCH', dist = 'normal')
+# Fit the model
+gm_result = basic_gm.fit(update_freq = 1)
+
+# Display model fitting summary
+print(gm_result.summary())
+
+# Plot fitted results
+gm_result.plot()
+plt.show()
+
+# Make 5-period ahead forecast
+gm_forecast = gm_result.forecast(horizon = 5)
+
+# Print the forecast variance
+print(gm_forecast.variance[-1:])
