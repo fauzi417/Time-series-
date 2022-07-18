@@ -476,5 +476,61 @@ plt.show()
 # Make 5-period ahead forecast
 gm_forecast = gm_result.forecast(horizon = 5)
 
-# Print the forecast variance
+# Print the forecast variance dan mean(buat forecast pake mean)
 print(gm_forecast.variance[-1:])
+print(gm_forecast.mean[-1:])
+
+
+#MATERI SENIN
+# Obtain model estimated residuals and volatility
+gm_resid = gm_result.resid
+gm_std = gm_result.conditional_volatility
+
+# Calculate the standardized residuals
+gm_std_resid = gm_resid /gm_std
+gm_std_resid.plot()
+
+# Plot the histogram of the standardized residuals
+plt.hist(gm_std_resid,bins=15,
+         facecolor = 'orange', label = 'Standardized residuals')
+plt.show()
+
+#karena agak miring, kita ganti pake skewt
+skewt_gm = arch_model(results1.resid, p = 1, q = 1,
+                      mean = 'constant', vol = 'GARCH', dist = 'skewt')
+
+skewt_result = skewt_gm.fit()
+print(skewt_result.summary())
+
+# Get model estimated volatility
+skewt_vol = skewt_result.conditional_volatility
+
+# Plot model fitting results
+plt.plot(gm_std,
+         color = 'red', label = 'Standardized residuals')
+plt.plot(skewt_vol, color = 'gold', label = 'Skewed-t Volatility')
+plt.plot(results1.resid, color = 'grey',
+         label = 'Residual ARIMA', alpha = 0.4)
+plt.legend(loc = 'upper right')
+plt.show()
+
+# Different mean
+zero_gm = arch_model(results1.resid, p = 1, q = 1,
+                      mean = 'zero', vol = 'GARCH', dist = 'skewt')
+zero_result = zero_gm.fit()
+print(zero_result.summary())
+
+ar_gm = arch_model(results1.resid, p = 1, q = 1,
+                      mean = 'AR',lags=1, vol = 'GARCH', dist = 'skewt')
+ar_result = ar_gm.fit()
+print(ar_result.summary())
+
+ar_vol=ar_result.conditional_volatility
+# Plot model fitting results
+plt.plot(gm_std,
+         color = 'red', label = 'Standardized residuals')
+plt.plot(ar_vol, color = 'gold', label = 'AR Skewed-t Volatility')
+plt.plot(results1.resid, color = 'grey',
+         label = 'Residual ARIMA', alpha = 0.4)
+plt.legend(loc = 'upper right')
+plt.show()
