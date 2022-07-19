@@ -534,3 +534,64 @@ plt.plot(results1.resid, color = 'grey',
          label = 'Residual ARIMA', alpha = 0.4)
 plt.legend(loc = 'upper right')
 plt.show()
+
+#MATERI SELASA
+# Asymetric shock
+#GJR GARCH
+skewt_gjrgm = arch_model(results1.resid, p = 1, q = 1,o=1,
+                      mean = 'AR',lags=1, vol = 'GARCH', dist = 'skewt')
+gjrgm_result = skewt_gjrgm.fit()
+print(gjrgm_result.summary())
+
+#EGARCH
+skewt_egm = arch_model(results1.resid, p = 1, q = 1,o=1,
+                      mean = 'AR',lags=1, vol = 'EGARCH', dist = 'skewt')
+egm_result = skewt_egm.fit()
+print(egm_result.summary())
+
+#expanding window
+forecasts={}
+start_loc=15
+end_loc=20
+for i in range(30):
+    # Specify fixed rolling window size for model fitting
+    gm_result = ar_gm.fit(first_obs = start_loc,
+                             last_obs = i + end_loc)
+    # Conduct 1-period mean forecast and save the result
+    temp_result = gm_result.forecast(horizon=1).mean
+    fcast = temp_result.iloc[i + end_loc]
+    forecasts[fcast.name] = fcast
+# Save all forecast to a dataframe
+forecast_exp = pd.DataFrame(forecasts).T
+
+# Plot the forecast mean
+plt.plot(forecast_exp, color='red')
+plt.plot(results1.resid[21:51], color='green')
+plt.show()
+
+#fixed window
+forecasts={}
+start_loc=15
+end_loc=20
+for i in range(30):
+    # Specify fixed rolling window size for model fitting
+    gm_result = ar_gm.fit(first_obs = i + start_loc,
+                             last_obs = i + end_loc)
+    # Conduct 1-period variance forecast and save the result
+    temp_result = gm_result.forecast(horizon=1).mean
+    fcast = temp_result.iloc[i + end_loc]
+    forecasts[fcast.name] = fcast
+# Save all forecast to a dataframe
+forecast_roll = pd.DataFrame(forecasts).T
+
+# Plot the forecast mean
+plt.plot(forecast_roll, color='red')
+plt.plot(results1.resid[21:51], color='green')
+plt.show()
+
+
+# Plot the forecast mean expanding and rolling
+plt.plot(forecast_exp, color='blue')
+plt.plot(forecast_roll, color='red')
+plt.plot(results1.resid[21:51], color='green')
+plt.show()
