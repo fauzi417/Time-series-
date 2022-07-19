@@ -595,3 +595,31 @@ plt.plot(forecast_exp, color='blue')
 plt.plot(forecast_roll, color='red')
 plt.plot(results1.resid[21:51], color='green')
 plt.show()
+
+
+######################RABU
+#cek pvalue dan tvalue
+print(ar_result.summary())
+
+#eliminasi
+ar_gm = arch_model(results1.resid, p = 1, q = 0,
+                      mean = 'AR',lags=1, vol = 'GARCH', dist = 'skewt')
+ar_result = ar_gm.fit()
+print(ar_result.summary())
+
+#validasi
+#visual check
+ar_result.plot()
+plt.show()
+
+#autocor
+ar_resid = ar_result.resid
+ar_std = ar_result.conditional_volatility
+ar_std_resid = ar_resid /ar_std
+plot_acf(ar_std_resid.dropna())
+
+#ljungbox
+from statsmodels.stats.diagnostic import acorr_ljungbox
+lb_test = acorr_ljungbox(ar_std_resid.dropna() , lags = 12, return_df = True)
+print('P-values are: ', lb_test.iloc[0,1])
+
