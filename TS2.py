@@ -623,3 +623,76 @@ from statsmodels.stats.diagnostic import acorr_ljungbox
 lb_test = acorr_ljungbox(ar_std_resid.dropna() , lags = 12, return_df = True)
 print('P-values are: ', lb_test.iloc[0,1])
 
+
+
+############################KAMIS
+#backtesting untuk train data
+me = np.mean(ar_result.resid)             # ME
+mae = np.mean(np.abs(ar_result.resid))    # MAE
+mse = np.mean((ar_result.resid)**2)       # MSE
+rmse = np.mean((ar_result.resid)**2)**.5  # RMSE
+print(me,mae,mse,rmse)
+
+
+#train test
+from sklearn.model_selection import train_test_split
+from pandas.tseries.offsets import MonthEnd
+train,test=train_test_split(results1.resid,test_size=.2,shuffle=False)
+len(train)
+len(test)
+
+
+#backtesting untuk test data
+#Expanding
+dataset=train.copy()
+for i in range(14):
+    start_loc = 0
+    end_loc = len(dataset)
+    # Specify expanding rolling window size for model fitting
+    ar_gm = arch_model(dataset, p=1, q=0,
+                       mean='AR', lags=1, vol='GARCH', dist='skewt')
+    gm_result = ar_gm.fit(first_obs = start_loc,
+                             last_obs = end_loc)
+    # Conduct 1-period mean forecast and save the result
+    temp_result = gm_result.forecast(horizon=1).mean
+    fcast = temp_result.iloc[-1][0]
+    dataset.loc[dataset.index.max() + MonthEnd(1)] = fcast
+
+# Plot the forecast mean
+plt.plot(dataset[52:], color='red')
+plt.plot(train, color='blue')
+plt.plot(test, color='green')
+plt.show()
+
+me = np.mean(dataset[52:] - test)             # ME
+mae = np.mean(dataset[52:] - test)            # MAE
+mse = np.mean((dataset[52:] - test)**2)       # MSE
+rmse = np.mean((dataset[52:] - test)**2)**.5  # RMSE
+print(me,mae,mse,rmse)
+
+#atau Expanding
+ar_gm = arch_model(train, p = 1, q = 0,
+                      mean = 'AR',lags=1, vol = 'GARCH', dist = 'skewt')
+ar_result=ar_gm.fit()
+ar_forecast = ar_result.forecast(horizon = 14).mean
+
+#bukti
+plt.plot(dataset[52:], color='red')
+plt.plot(dataset[52:].index,ar_forecast.iloc[-1])
+
+
+#final forecast
+sarima_pred1 = results1.get_forecast(steps=10)
+sarima_mean1 = sarima_pred1.predicted_mean
+
+ar_forecast = ar_result.forecast(horizon = 10)
+ar_mean=ar_forecast.mean.iloc[-1]
+
+plt.plot(s2['NTF'])
+plt.plot(sarima_mean1)
+plt.plot(sarima_mean1.index,ar_mean)
+plt.show()
+
+plt.plot(s2['NTF'])
+plt.plot(sarima_mean1.index,sarima_mean1 + ar_mean.values)
+plt.show()
