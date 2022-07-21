@@ -696,3 +696,44 @@ plt.show()
 plt.plot(s2['NTF'])
 plt.plot(sarima_mean1.index,sarima_mean1 + ar_mean.values)
 plt.show()
+
+
+
+#tambahan
+#white test
+results1.summary()
+#hetero white test
+results1.test_heteroskedasticity("breakvar")
+#tvalue
+results1.test_heteroskedasticity("breakvar")[0][0]
+#pvalue
+results1.test_heteroskedasticity("breakvar")[0][1]
+
+#normality JB
+results1.test_normality("jarquebera")
+#tvalue
+results1.test_normality("jarquebera")[0][0]
+#pvalue
+results1.test_normality("jarquebera")[0][1]
+
+#corr
+results1.test_serial_correlation("ljungbox")
+#tvalue
+results1.test_serial_correlation("ljungbox")[0][0][0]
+#pvalue
+results1.test_serial_correlation("ljungbox")[0][1][0]
+
+#aic bic
+results1.aic
+results1.bic
+
+
+#forecast 10 kedepan
+plt.plot(results1.get_forecast(steps=10).predicted_mean)
+#predict mulai dari data ke 10
+plt.plot(results1.get_prediction(start=10).predicted_mean)
+#predict 10 data terkahir
+plt.plot(results1.get_prediction(start=-10).predicted_mean)
+
+#pvalue parameter
+results1.pvalues
