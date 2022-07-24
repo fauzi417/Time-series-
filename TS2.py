@@ -737,3 +737,158 @@ plt.plot(results1.get_prediction(start=-10).predicted_mean)
 
 #pvalue parameter
 results1.pvalues
+
+
+#ML (data pakai NTF series dan sound wav download di https://www.kaggle.com/datasets/kinguistics/heartbeat-sounds)
+from sklearn.linear_model import LinearRegression
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+
+
+#data
+df=pd.read_excel('C:/Users/PREDATOR/OneDrive/Dokumen/ts/NTF series (1).xlsx')
+df['Date']= pd.to_datetime(df['Date'])
+df2=df.groupby([df['Date'].dt.year, df['Date'].dt.month], as_index=False).last()
+df.set_index('Date', inplace=True)
+df2.set_index('Date', inplace=True)
+data = df.groupby([lambda x: x.year, lambda x: x.month]).sum()
+data.set_index(df2['NTF'].asfreq('1M').index,inplace=True)
+
+
+X=data[["Acct"]]
+y=data[["NTF"]]
+X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=.2,shuffle=False)
+
+
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+pred=model.predict((X_test))
+print(pred)
+
+plt.plot(y_test.index,pred,color='red')
+plt.plot(y_test.index,y_test,color='green')
+plt.show()
+
+#heartbeat normal or not normal ?
+import librosa as lr
+from glob import glob
+
+# List all the wav files in the folder
+audio_files = glob('C:/Users/PREDATOR/PycharmProjects/Study/heartbeat/set_a' + '/*.wav')
+
+# Read in the ten audio file, create the time array
+audio, sfreq = lr.load(audio_files[10])
+print(sfreq)
+#sfreq 22050, artinya ada 22050 data recorded per sec
+
+#Make time for index in seconds
+time = np.arange(0, len(audio)) / sfreq
+#atau
+time2 = np.arange(audio.shape[-1]) / sfreq
+
+# Plot audio over time
+fig, ax = plt.subplots()
+ax.plot(time, audio)
+ax.set(xlabel='Time (s)', ylabel='Sound Amplitude')
+plt.show()
+
+
+#Explore audio file
+print(audio_files[150])
+audio1, sfreq1 = lr.load(audio_files[150])
+audio2, sfreq2 = lr.load(audio_files[151])
+audio3, sfreq3 = lr.load(audio_files[149])
+normal=pd.DataFrame({'1':audio1,'2':audio2[:len(audio1)],'3':audio3[:len(audio1)]},index=np.arange(0,len(audio1))/sfreq1)
+
+print(audio_files[101])
+audio4, sfreq4 = lr.load(audio_files[101])
+audio5, sfreq5 = lr.load(audio_files[102])
+audio6, sfreq6 = lr.load(audio_files[100])
+abnormal=pd.DataFrame({'4':audio4[:len(audio1)],'5':audio5[:len(audio1)],'6':audio6[:len(audio1)]},index=np.arange(0,len(audio1))/sfreq1)
+
+#cek Plot audio over time
+fig, ax = plt.subplots()
+ax.plot(np.arange(0,len(audio1))/sfreq1, audio1)
+ax.set(xlabel='Time (s)', ylabel='Sound Amplitude')
+plt.show()
+
+# Calculate the time array
+time = np.arange(normal.shape[0]) / sfreq1
+
+# Stack the normal/abnormal audio so you can loop and plot
+stacked_audio = np.hstack([normal, abnormal]).T
+
+fig, axs = plt.subplots(3, 2, figsize=(15, 7))
+# Loop through each audio file / ax object and plot
+# .T.ravel() transposes the array, then unravels it into a 1-D vector for looping
+for iaudio, ax in zip(stacked_audio, axs.T.ravel()):
+    ax.plot(time, iaudio)
+    ax.set(xlabel='Time (s)', ylabel='Sound Amplitude')
+    plt.suptitle('Normal heartbeat                                       Abnormal heartbeat')
+
+
+# Average across the audio files of each DataFrame
+mean_normal = np.mean(normal, axis=1)
+mean_abnormal = np.mean(abnormal, axis=1)
+
+# Plot each average over time
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3), sharey=True)
+ax1.plot(time, mean_normal)
+ax1.set(title="Normal Data")
+ax2.plot(time, mean_abnormal)
+ax2.set(title="Abnormal Data")
+plt.show()
+
+
+#Coba train test model predict
+
+normal=pd.DataFrame({'1':lr.load(audio_files[150])[0],
+                     '2':lr.load(audio_files[151])[0][:len(audio1)],
+                     '3':lr.load(audio_files[152])[0][:len(audio1)],
+                     '4': lr.load(audio_files[153])[0][:len(audio1)],
+                     '5': lr.load(audio_files[154])[0][:len(audio1)],
+                     '6': lr.load(audio_files[155])[0][:len(audio1)],
+                     '7': lr.load(audio_files[156])[0][:len(audio1)],
+                     '8': lr.load(audio_files[157])[0][:len(audio1)],
+                     '9': lr.load(audio_files[158])[0][:len(audio1)],
+                     '10': lr.load(audio_files[160])[0][:len(audio1)]
+                     }
+                     ,index=np.arange(0,len(audio1))/sfreq1)
+
+
+abnormal=pd.DataFrame({'11':lr.load(audio_files[0])[0][:len(audio1)],
+                     '12':lr.load(audio_files[1])[0][:len(audio1)],
+                     '13':lr.load(audio_files[2])[0][:len(audio1)],
+                     '14': lr.load(audio_files[3])[0][:len(audio1)],
+                     '15': lr.load(audio_files[103])[0][:len(audio1)],
+                     '16': lr.load(audio_files[104])[0][:len(audio1)],
+                     '17': lr.load(audio_files[105])[0][:len(audio1)],
+                     '18': lr.load(audio_files[106])[0][:len(audio1)],
+                     '19': lr.load(audio_files[140])[0][:len(audio1)],
+                     '20': lr.load(audio_files[141])[0][:len(audio1)]
+                     }
+                     ,index=np.arange(0,len(audio1))/sfreq1)
+
+stacked_audio = np.hstack([normal, abnormal]).T
+y=np.array(["Normal","Normal","Normal","Normal","Normal","Normal","Normal","Normal","Normal","Normal","ABnormal","ABnormal","ABnormal",
+   "ABnormal","ABnormal","ABnormal","ABnormal","ABnormal","ABnormal","ABnormal"])
+X_train,X_test,y_train,y_test=train_test_split(stacked_audio,y,test_size=.2,shuffle=True)
+X_train.shape
+y_train.shape
+X_test.shape
+y_test.shape
+
+from sklearn.svm import LinearSVC
+
+# Initialize and fit the model
+model = LinearSVC()
+model.fit(X_train,y_train)
+
+# Generate predictions and score them manually
+predictions = model.predict(X_test)
+print(sum(predictions == y_test) / len(y_test))
+
+
