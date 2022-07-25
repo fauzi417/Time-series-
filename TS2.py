@@ -892,3 +892,117 @@ predictions = model.predict(X_test)
 print(sum(predictions == y_test) / len(y_test))
 
 
+#karena data suara terlalu noisy, bisa kita smoothing pake rolling mean
+#untuk itu datanya perlu positif semua, karena kalo ada negatif nanti meannya bisa saling menghabiskan
+#rectify (kita bikin positif semua pake abs)
+audio, sfreq = lr.load(audio_files[10])
+time = np.arange(0, len(audio)) / sfreq
+fig, ax = plt.subplots()
+ax.plot(np.arange(0,len(audio))/sfreq, audio)
+ax.set(xlabel='Time (s)', ylabel='Sound Amplitude')
+plt.show()
+
+audio_rectified = pd.DataFrame(audio,index=np.arange(0,len(audio))/sfreq).apply(abs)
+
+# Plot the result
+audio_rectified.plot(figsize=(10, 5))
+plt.show()
+
+# Smooth by applying a rolling mean
+audio_rectified_smooth = audio_rectified.rolling(4500).mean()
+
+# Plot the result
+audio_rectified_smooth.plot(figsize=(10, 5))
+plt.show()
+
+#tapi keliatan kan kalo pake data asli aja datanya terlalu noisy, agak susah buat klasifikasi
+#kita bisa extract feature feature lain dari suara tadi kyk max, mean, min
+#nanti feature-feature ini bisa di jadiin variable baru buat dimasukin ke machine learning
+
+#coba bikin data
+audio1, sfreq1 = lr.load(audio_files[150])
+normal=pd.DataFrame({'1':lr.load(audio_files[150])[0],
+                     '2':lr.load(audio_files[151])[0][:len(audio1)],
+                     '3':lr.load(audio_files[152])[0][:len(audio1)],
+                     '4': lr.load(audio_files[153])[0][:len(audio1)],
+                     '5': lr.load(audio_files[154])[0][:len(audio1)],
+                     '6': lr.load(audio_files[155])[0][:len(audio1)],
+                     '7': lr.load(audio_files[156])[0][:len(audio1)],
+                     '8': lr.load(audio_files[157])[0][:len(audio1)],
+                     '9': lr.load(audio_files[158])[0][:len(audio1)],
+                     '10': lr.load(audio_files[160])[0][:len(audio1)]
+                     }
+                     ,index=np.arange(0,len(audio1))/sfreq1)
+
+
+abnormal=pd.DataFrame({'11':lr.load(audio_files[0])[0][:len(audio1)],
+                     '12':lr.load(audio_files[1])[0][:len(audio1)],
+                     '13':lr.load(audio_files[2])[0][:len(audio1)],
+                     '14': lr.load(audio_files[3])[0][:len(audio1)],
+                     '15': lr.load(audio_files[103])[0][:len(audio1)],
+                     '16': lr.load(audio_files[104])[0][:len(audio1)],
+                     '17': lr.load(audio_files[105])[0][:len(audio1)],
+                     '18': lr.load(audio_files[106])[0][:len(audio1)],
+                     '19': lr.load(audio_files[140])[0][:len(audio1)],
+                     '20': lr.load(audio_files[141])[0][:len(audio1)]
+                     }
+                     ,index=np.arange(0,len(audio1))/sfreq1)
+
+normal=normal.apply(abs)
+abnormal=abnormal.apply(abs)
+normal=normal.rolling(4500).mean()
+abnormal=abnormal.rolling(4500).mean()
+stacked_audio = pd.DataFrame(np.hstack([normal, abnormal]))
+
+
+
+# Calculate stats
+means = np.mean(stacked_audio, axis=0)
+stds = np.std(stacked_audio, axis=0)
+maxs = np.max(stacked_audio, axis=0)
+
+# Create the X and y arrays
+X = np.column_stack([means, stds, maxs])
+y=np.array(["Normal","Normal","Normal","Normal","Normal","Normal","Normal","Normal","Normal","Normal","ABnormal","ABnormal","ABnormal",
+   "ABnormal","ABnormal","ABnormal","ABnormal","ABnormal","ABnormal","ABnormal"])
+X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=.2,shuffle=True)
+X_train.shape
+y_train.shape
+X_test.shape
+y_test.shape
+
+# Initialize and fit the model
+model = LinearSVC()
+model.fit(X_train,y_train)
+
+# Generate predictions and score them manually
+predictions = model.predict(X_test)
+print(sum(predictions == y_test) / len(y_test))
+
+# Fit the model and score on testing data crossval
+from sklearn.model_selection import cross_val_score
+percent_score = cross_val_score(LinearSVC(), X, y, cv=5)
+print(np.mean(percent_score))
+
+# Calculate the tempo of the
+allaudio=pd.DataFrame(stacked_audio.T)
+tempos = []
+for col, i_audio in allaudio.items():
+    tempos.append(lr.beat.tempo(i_audio.values, sr=sfreq, hop_length=2**6, aggregate=None))
+
+# Convert the list to an array so you can manipulate it more easily
+tempos = np.array(tempos)
+
+# Calculate statistics of each tempo
+tempos_mean = tempos.mean(axis=-1)
+tempos_std = tempos.std(axis=-1)
+tempos_max = tempos.max(axis=-1)
+
+# Create the X and y arrays
+X = np.column_stack([means, stds, maxs, tempos_mean, tempos_std, tempos_max])
+y=np.array(["Normal","Normal","Normal","Normal","Normal","Normal","Normal","Normal","Normal","Normal","ABnormal","ABnormal","ABnormal",
+   "ABnormal","ABnormal","ABnormal","ABnormal","ABnormal","ABnormal","ABnormal"])
+
+# Fit the model and score on testing data
+percent_score = cross_val_score(model, X, y, cv=5)
+print(np.mean(percent_score))
