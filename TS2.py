@@ -1007,5 +1007,6 @@ y=np.array(["Normal","Normal","Normal","Normal","Normal","Normal","Normal","Norm
 percent_score = cross_val_score(model, X, y, cv=5)
 print(np.mean(percent_score))
 
-#untuk suara sampe sini aja yak, bsk balik ke NTF
+#untuk suara sampe sini aja yak cer, bsk kita balik ke NTF
 #kalo masih penasaran sama data suara lebih lanjut bisa cari tentang spectogram , spectral bandwith, spectral centroid, nanti hasilnya bisa di add ke stacked
+#tebak tebakan, bau bau apa yang bikin kangen ?
