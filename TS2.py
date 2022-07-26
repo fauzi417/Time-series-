@@ -1010,3 +1010,183 @@ print(np.mean(percent_score))
 #untuk suara sampe sini aja yak cer, bsk kita balik ke NTF
 #kalo masih penasaran sama data suara lebih lanjut bisa cari tentang spectogram , spectral bandwith, spectral centroid, nanti hasilnya bisa di add ke stacked
 #tebak tebakan, bau bau apa yang bikin kangen ?
+
+
+#balik ke NTF, kita coba olah data 2 sekaligus, 1 df (harian), 2 data (agregat bulanan)
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+df=pd.read_excel('C:/Users/PREDATOR/OneDrive/Dokumen/ts/NTF series (1).xlsx')
+df['Date']= pd.to_datetime(df['Date'])
+df2=df.groupby([df['Date'].dt.year, df['Date'].dt.month], as_index=False).last()
+df.set_index('Date', inplace=True)
+df2.set_index('Date', inplace=True)
+data = df.groupby([lambda x: x.year, lambda x: x.month]).sum()
+data.set_index(df2['NTF'].asfreq('1M').index,inplace=True)
+df=df.reindex(pd.bdate_range('2017-01-03', '2022-06-30'))
+
+#plot
+#plot df
+fig, ax = plt.subplots()
+ax.plot(df.index,df['Acct'])
+ax.set(xlabel='Date', ylabel='Acct')
+plt.show()
+#zoom
+plt.plot(df['Acct'][:365])
+
+fig, ax = plt.subplots()
+ax.plot(df.index,df['NTF'])
+ax.set(xlabel='Date', ylabel='NTF')
+plt.show()
+#zoom
+plt.plot(df['NTF'][:365])
+
+
+fig, ax = plt.subplots()
+ax.plot(df.index,df['Average NTF'])
+ax.set(xlabel='Date', ylabel='Average NTF')
+plt.show()
+#zoom
+plt.plot(df['Average NTF'][:365])
+
+#plot data
+fig, ax = plt.subplots()
+ax.plot(data.index,data['Acct'])
+ax.set(xlabel='Date', ylabel='Acct')
+plt.show()
+
+fig, ax = plt.subplots()
+ax.plot(data.index,data['NTF'])
+ax.set(xlabel='Date', ylabel='NTF')
+plt.show()
+
+fig, ax = plt.subplots()
+ax.plot(data.index,data['Average NTF'])
+ax.set(xlabel='Date', ylabel='Avg NTF')
+plt.show()
+
+#scatter df
+df.plot.scatter("Acct", "NTF")
+plt.show()
+# Scatterplot with color relating to time
+df.plot.scatter('Acct', 'NTF', c=df.index,
+                    cmap=plt.cm.viridis, colorbar=False)
+plt.show()
+
+
+#scatter data
+data.plot.scatter("Acct", "NTF")
+plt.show()
+# Scatterplot with color relating to time
+data.plot.scatter('Acct', 'NTF', c=data.index,
+                    cmap=plt.cm.viridis, colorbar=False)
+plt.show()
+
+from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import cross_val_score
+# Use stock symbols to extract training data
+X = data[['Acct']]
+y = data[['NTF']]
+
+# Fit and score the model with cross-validation
+scores = cross_val_score(LinearRegression(), X, y, cv=3)
+print(scores)
+scores = cross_val_score(Ridge(), X, y, cv=3)
+print(scores)
+
+from sklearn.metrics import r2_score
+
+# Split our data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y,
+                                                    train_size=.8, shuffle=False)
+
+# Fit our model and generate predictions Linear
+model = LinearRegression()
+model.fit(X_train, y_train)
+predictions = model.predict(X_test)
+score = r2_score(y_test, predictions)
+print(score)
+
+# Fit our model and generate predictions RIDGE
+model = Ridge()
+model.fit(X_train, y_train)
+predictions = model.predict(X_test)
+score = r2_score(y_test, predictions)
+print(score)
+
+# Visualize our predictions along with the "true" values, and print the score
+fig, ax = plt.subplots(figsize=(15, 5))
+ax.plot(y_test, color='k', lw=3)
+ax.plot(y_test.index,predictions, color='r', lw=2)
+plt.show()
+
+
+# Count the missing values of each time series
+missing_values = df.isna().sum()
+print(missing_values)
+
+
+# Create a function we'll use to interpolate and plot
+def interpolate_and_plot(datas, interpolation):
+
+    # Interpolate the missing values
+    datas_interp = datas.interpolate(interpolation)
+
+    # Plot the results, highlighting the interpolated values in black
+    fig, ax = plt.subplots(figsize=(10, 5))
+    datas_interp.plot(color='r', alpha=.6, ax=ax, legend=False)
+
+    # Now plot the interpolated values on top in red
+    datas.plot(ax=ax, color='k', lw=1.5, legend=False)
+    plt.show()
+
+# Interpolate using the latest non-missing value
+interpolation_type = "zero"
+interpolate_and_plot(df['NTF'], interpolation_type)
+
+# Interpolate linearly
+interpolation_type = "linear"
+interpolate_and_plot(df['NTF'], interpolation_type)
+
+# Interpolate with a quadratic function
+interpolation_type = "quadratic"
+interpolate_and_plot(df['NTF'], interpolation_type)
+
+df_NTF_interp = df['NTF'].interpolate('linear')
+
+# Your custom function
+def percent_change(series):
+    # Collect all *but* the last value of this window, then the final value
+    previous_values = series[:-1]
+    last_value = series[-1]
+
+    # Calculate the % difference between the last value and the mean of earlier values
+    percent_change = (last_value - np.mean(previous_values)) / np.mean(previous_values)
+    return percent_change
+
+# Apply your custom function and plot
+df_perc = df_NTF_interp.rolling(30).apply(percent_change)
+df_perc.plot()
+plt.show()
+
+
+def replace_outliers(series):
+    # Calculate the absolute difference of each timepoint from the series mean
+    absolute_differences_from_mean = np.abs(series - np.mean(series))
+
+    # Calculate a mask for the differences that are > 3 standard deviations from zero
+    this_mask = absolute_differences_from_mean > (np.std(series) * 3)
+
+    # Replace these values with the median accross the data
+    series[this_mask] = np.nanmedian(series)
+    return series
+
+
+# Apply your preprocessing function to the timeseries and plot the results
+prices_perc = replace_outliers(df_perc)
+prices_perc.plot()
+plt.show()
+
+#mobil mobil apa yang bikin galau ?
