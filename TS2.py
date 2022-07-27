@@ -1007,10 +1007,6 @@ y=np.array(["Normal","Normal","Normal","Normal","Normal","Normal","Normal","Norm
 percent_score = cross_val_score(model, X, y, cv=5)
 print(np.mean(percent_score))
 
-#untuk suara sampe sini aja yak cer, bsk kita balik ke NTF
-#kalo masih penasaran sama data suara lebih lanjut bisa cari tentang spectogram , spectral bandwith, spectral centroid, nanti hasilnya bisa di add ke stacked
-#tebak tebakan, bau bau apa yang bikin kangen ?
-
 
 #balik ke NTF, kita coba olah data 2 sekaligus, 1 df (harian), 2 data (agregat bulanan)
 import pandas as pd
@@ -1189,4 +1185,101 @@ prices_perc = replace_outliers(df_perc)
 prices_perc.plot()
 plt.show()
 
+# Define a rolling window with Pandas, excluding the right-most datapoint of the window
+df_perc_rolling = df_perc.rolling(20, min_periods=5, closed='right')
 
+# Define the features you'll calculate for each window
+features_to_calculate = [np.min, np.max, np.mean, np.std]
+
+# Calculate these features for your rolling window object
+features = df_perc_rolling.aggregate(features_to_calculate)
+
+# Plot the results
+ax = features.plot()
+df_perc.plot(ax=ax, color='k', alpha=.2, lw=3)
+ax.legend(loc=(1.01, .6))
+plt.show()
+
+# Import partial from functools
+from functools import partial
+percentiles = [1, 10, 25, 50, 75, 90, 99]
+
+# Use a list comprehension to create a partial function for each quantile
+percentile_functions = [partial(np.percentile, q=percentile) for percentile in percentiles]
+
+# Calculate each of these quantiles on the data using a rolling window
+df_perc_rolling = df_perc.rolling(20, min_periods=5, closed='right')
+features_percentiles = df_perc_rolling.aggregate(percentile_functions)
+
+# Plot a subset of the result
+ax = features_percentiles.plot(cmap=plt.cm.viridis)
+ax.legend(percentiles, loc=(1.01, .5))
+plt.show()
+
+# Extract date features from the data, add them as columns
+df_perc_frame=pd.DataFrame(df_perc)
+df_perc_frame['day_of_week'] = df_perc.index.dayofweek
+df_perc_frame['week_of_month'] = df_perc.index.weekofyear
+df_perc_frame['month_of_year'] = df_perc.index.month
+
+# Print prices_perc
+print(df_perc_frame)
+
+
+# These are the "time lags"
+shifts = np.arange(1, 11).astype(int)
+
+# Use a dictionary comprehension to create name: value pairs, one pair per shift
+shifted_data = {"lag_{}_day".format(day_shift): df_perc.shift(day_shift) for day_shift in shifts}
+
+# Convert into a DataFrame for subsequent use
+df_perc_shifted = pd.DataFrame(shifted_data)
+
+# Plot
+ax = df_perc_shifted.plot(cmap=plt.cm.viridis)
+df_perc.plot(color='r', lw=2)
+ax.legend(loc='best')
+plt.show()
+
+# Replace missing values with the median for each column
+X = df_perc_shifted.fillna(np.nanmedian(df_perc_shifted))
+y = df_perc.fillna(np.nanmedian(df_perc))
+
+# Fit the model
+model = Ridge()
+model.fit(X, y)
+
+
+
+def visualize_coefficients(coefs, names, ax):
+    # Make a bar plot for the coefficients, including their names on the x-axis
+    ax.bar(names, coefs)
+    ax.set(xlabel='Coefficient name', ylabel='Coefficient value')
+
+    # Set formatting so it looks nice
+    plt.setp(ax.get_xticklabels(), rotation=45, horizontalalignment='right')
+    return ax
+
+fig, axs = plt.subplots(2, 1, figsize=(10, 5))
+y.plot(ax=axs[0])
+visualize_coefficients(model.coef_, df_perc_shifted.columns, ax=axs[1])
+plt.show()
+
+# Import TimeSeriesSplit
+from sklearn.model_selection import TimeSeriesSplit
+
+# Create time-series cross-validation object
+cv = TimeSeriesSplit(n_splits=10)
+
+# Iterate through CV splits
+fig, ax = plt.subplots()
+for ii, (tr, tt) in enumerate(cv.split(X, y)):
+    # Plot the training data on each iteration, to see the behavior of the CV
+    ax.plot(tr, ii + y[tr])
+
+ax.set(title='Training data on each CV iteration', ylabel='CV iteration')
+plt.show()
+
+# Generate scores for each split to see how the model performs over time
+scores = cross_val_score(model, X, y, cv=cv)
+scores
