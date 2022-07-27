@@ -1189,4 +1189,4 @@ prices_perc = replace_outliers(df_perc)
 prices_perc.plot()
 plt.show()
 
-#mobil mobil apa yang bikin galau ?
+
